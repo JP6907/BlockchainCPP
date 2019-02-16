@@ -11,6 +11,7 @@ void printChain(Blockchain* bc){
     BlockchainItr* bci = new BlockchainItr(bc);
     while(1){
         Block* block = bci->nextBlock();
+        cout << "---<Block>--- " << endl;
         cout << "Prev hash: " << block->prevBlockHash << endl;
         cout << "Transactions num: " <<block->transactions.size() << endl;
         //打印当前区块包含的每笔交易的输入和输出
@@ -21,11 +22,12 @@ void printChain(Blockchain* bc){
             }
             cout << "  Transaction" << i << " out:" << endl;
             for (int k = 0; k < block->transactions[i]->vout.size(); ++k) {
-                cout << "    " << block->transactions[i]->vout[k].scriptPubkey << endl;
+                cout << "    " << block->transactions[i]->vout[k].scriptPubkey
+                    << "  " << block->transactions[i]->vout[k].value << endl;
             }
         }
         cout << "Hash: " << block->hash << endl;
-
+        cout << "---</Block>--- " << endl;
         if(block->prevBlockHash=="")  //到达创世区块
             break;
     }
@@ -33,9 +35,15 @@ void printChain(Blockchain* bc){
 
 int main(){
     Blockchain* bc = Blockchain::NewBlockchain("def");
-    printChain(bc);
+    //printChain(bc);
     bc->getBalance("def");
     bc->getBalance("noName");
+
+    cout << "------" << endl;
+    bc->send("def","jack",1);
+    //printChain(bc);
+    bc->getBalance("def");
+    bc->getBalance("jack");
 
     return 0;
 }

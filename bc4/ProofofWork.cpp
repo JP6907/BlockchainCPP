@@ -22,18 +22,10 @@ ProofofWork::ProofofWork(Block *b) {
  */
 std::string ProofofWork::calculateHash(int64_t nonce) {
     stringstream ss;
-    ss << block->prevBlockHash << this->hashTransactions() << block->timeStamp << nonce;
+    ss << block->prevBlockHash << block->hashTransactions() << block->timeStamp << nonce;
     return sha256(ss.str());
 }
 
-std::string ProofofWork::hashTransactions() {
-    stringstream ss;
-    for (int i = 0; i < block->transactions.size(); ++i) {
-        ss << block->transactions[i]->id;
-    }
-    string hash = sha256(ss.str());
-    return hash;
-}
 
 /**
  * 开始运行哈希碰撞

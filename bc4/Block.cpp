@@ -3,6 +3,8 @@
 //
 #include "Block.h"
 #include "ProofofWork.h"
+#include "../utils/sha256.h"
+#include <sstream>
 
 using namespace std;
 
@@ -40,4 +42,13 @@ Block* Block::NewGenesisBlock(Transaction* coinbase) {
 
 Block* Block::DeserializeBlock(std::string d) {
     return nullptr;
+}
+
+std::string Block::hashTransactions() {
+    stringstream ss;
+    for (int i = 0; i < this->transactions.size(); ++i) {
+        ss << this->transactions[i]->id;
+    }
+    string hash = sha256(ss.str());
+    return hash;
 }

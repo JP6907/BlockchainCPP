@@ -19,12 +19,19 @@ public:
     void addBlock(std::vector<Transaction*> transactions);
 
     //找到包含未花费输出的交易
-    std::vector<Transaction*> findUnspentTransactions(std::string address);
+    std::vector<Transaction> findUnspentTransactions(std::string address);
     //找到未交易的输出，可用于计算余额
-    std::vector<TXOutput*> findUTXO(std::string address);
+    std::vector<TXOutput> findUTXO(std::string address);
     //获取账户余额
     void getBalance(std::string address);
+    //获取可用于转账的交易输出
+    int findSpendableOutputs(std::string address,int amount,std::map<std::string,std::vector<int>>& spendableOutputs);
 
+
+    //创建普通的转账交易
+    Transaction* createUTXOTransaction(std::string from,std::string to,int amount);
+    //转账
+    void send(std::string from,std::string to,int amount);
 
 private:
     Blockchain(std::string tip,std::map<std::string,Block*>* db);

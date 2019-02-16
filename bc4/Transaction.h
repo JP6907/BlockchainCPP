@@ -9,6 +9,7 @@
 
 #include <string>
 #include <vector>
+//#include "Blockchain.h"
 
 /**
  * 交易输出
@@ -46,5 +47,6 @@ typedef struct transaction{
 
 
 Transaction* NewCoinbaseTX(std::string to,std::string data);
+
 
 #endif //BLOCKCHAINCPP_TRANSACTION_H

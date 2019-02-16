@@ -4,6 +4,7 @@
 #include "Transaction.h"
 #include "../utils/sha256.h"
 #include <sstream>
+#include <iostream>
 
 using namespace std;
 

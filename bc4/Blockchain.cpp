@@ -44,9 +44,9 @@ void Blockchain::addBlock(std::vector<Transaction*> transactions) {
     this->tip = lastHash;
 }
 
-std::vector<Transaction*> Blockchain::findUnspentTransactions(std::string address) {
+std::vector<Transaction> Blockchain::findUnspentTransactions(std::string address) {
     BlockchainItr* bci = new BlockchainItr(this);
-    vector<Transaction*> unspentTXS;  //包含未消费输出的交易
+    vector<Transaction> unspentTXS;  //包含未消费输出的交易
     map<string,vector<int>> spentTXOs;  //已经消费的交易的输出编号  交易id-输出编号
 
     while(1){
@@ -72,7 +72,7 @@ std::vector<Transaction*> Blockchain::findUnspentTransactions(std::string addres
                 //如果一个输出能被一个地址解锁，那么这个输出的资金属于这个地址
                 ///改进：可在这里直接保存UTXO，返回
                 if(block->transactions[txIndex]->vout[outIndex].canBeUnlockWith(address)){
-                    unspentTXS.push_back(block->transactions[txIndex]);
+                    unspentTXS.push_back(*(block->transactions[txIndex]));
                 }
             }//for (int outIndex = 0; outIndex < block->transactions[txIndex]->vout.size(); ++outIndex) {
 
@@ -97,23 +97,101 @@ std::vector<Transaction*> Blockchain::findUnspentTransactions(std::string addres
 
 ///改进：findUnspentTransactions函数在查找过程中已经找到UTXO，可直接保存返回
 ///没必要先保存交易，再在交易中查找UTXO
-std::vector<TXOutput*> Blockchain::findUTXO(std::string address) {
-    vector<TXOutput*> UTXOs;
-    vector<Transaction*> unspentTransactions = this->findUnspentTransactions(address);
+std::vector<TXOutput> Blockchain::findUTXO(std::string address) {
+    vector<TXOutput> UTXOs;
+    vector<Transaction> unspentTransactions = this->findUnspentTransactions(address);
     for(auto& tx : unspentTransactions){
-        for(auto out : tx->vout){
+        for(auto out : tx.vout){
             if(out.canBeUnlockWith(address))
-                UTXOs.push_back(&out);
+                UTXOs.push_back(out);
         }
     }
     return UTXOs;
 }
 
+///UTXOs内容正确，读取出就变成随机数？？？？
 void Blockchain::getBalance(std::string address) {
     int balance = 0;
-    vector<TXOutput*> UTXOs = this->findUTXO(address);
-    for(TXOutput* out : UTXOs){
-        balance += out->value;
+    vector<TXOutput> UTXOs = this->findUTXO(address);
+    for(TXOutput out : UTXOs){
+        balance += out.value;
     }
     cout << "Balance of " << address << ":" << balance << endl;
+}
+
+/**
+ * 获取可用于转账的交易输出
+ * @param address 转账的转出地址
+ * @param mount 转账金额
+ * @param spendableOutputs 交易输出集，通过引用当作返回值
+ * @return 交易输出的value总和，若比mount小，则表明资金不够
+ */
+int Blockchain::findSpendableOutputs(std::string address, int amount,
+                                     std::map<std::string, std::vector<int>>& spendableOutputs) {
+    spendableOutputs.clear();
+    vector<Transaction> unspentTXs = this->findUnspentTransactions(address);
+    int accumulated = 0;
+    for(auto& tx : unspentTXs){
+        string txID = tx.id;
+        for (int outIndex = 0; outIndex < tx.vout.size(); ++outIndex) {
+            if(tx.vout[outIndex].canBeUnlockWith(address)){
+                accumulated += tx.vout[outIndex].value;
+                spendableOutputs[txID].push_back(outIndex);
+
+                if(accumulated >= amount)  //有足够的数量就不需要继续查找
+                    break;
+            }
+        }
+    }
+    return accumulated;
+}
+
+
+Transaction* Blockchain::createUTXOTransaction(std::string from,std::string to,int amount){
+    vector<TXInput> inputs;
+    vector<TXOutput> outputs;
+    map<string,vector<int>> spentableOutputs;
+    int acc = this->findSpendableOutputs(from,amount,spentableOutputs);
+
+    if(acc < amount){
+        cerr << "ERROR:Not enough funds!" << endl;
+        return nullptr;
+    }
+
+    map<string,vector<int>>::iterator itr = spentableOutputs.begin();
+    for(;itr!=spentableOutputs.end();itr++){
+        for(auto& out : itr->second){  //对每笔交易输出创建对应的交易输入引用
+            TXInput input = TXInput{itr->first,out,from};
+            inputs.push_back(input);
+        }
+    }
+
+    //创建两个交易输出
+    //输出到目的账户
+    //多余的输出返回到原账户
+    TXOutput output = TXOutput{amount,to};
+    outputs.push_back(output);
+    if(acc > amount){
+        TXOutput newOut = TXOutput{acc-amount,from};
+        outputs.push_back(newOut);
+    }
+
+    Transaction* tx = new Transaction{"",inputs,outputs};
+    tx->setId();
+
+    return tx;
+}
+
+void Blockchain::send(std::string from,std::string to,int amount){
+    Transaction* tx = this->createUTXOTransaction(from,to,amount);
+    if(!tx){
+        cerr << "ERROR:Send Transaction failed!" << endl;
+        return;
+    }
+    ///这里没有实现内存池，发生一笔交易时，就直接把这笔交易打包成一个区块
+    ///即一个区块只包含一笔交易
+    vector<Transaction*> transactions;
+    transactions.push_back(tx);
+    this->addBlock(transactions);
+    cout << "Send Transaction success!" << endl;
 }

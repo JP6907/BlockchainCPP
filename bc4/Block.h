@@ -22,6 +22,7 @@ public:
     int64_t nonce;
 
     std::string Serialize(Block* b);
+    std::string hashTransactions();
     static Block* NewBlock(std::vector<Transaction*> transactions,std::string prevBlockHash);
     static Block* DeserializeBlock(std::string d);
 

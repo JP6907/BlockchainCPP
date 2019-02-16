@@ -18,7 +18,6 @@ public:
     bool validate();
 
 private:
-    std::string hashTransactions();
 };
 
 #endif //BLOCKCHAINCPP_POW_H
